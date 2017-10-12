@@ -1,0 +1,13 @@
+qemu-system-x86_64 -hda /tmp/GsVvUDK0ID.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q run alarm-zero
+Pintos booting with 3,968 kB RAM...
+367 pages available in kernel pool.
+367 pages available in user pool.
+Calibrating timer...  104,755,200 loops/s.
+Boot complete.
+Executing 'alarm-zero':
+(alarm-zero) begin
+
+TIMEOUT after 61 seconds of wall-clock time - load average: 0.26, 0.46, 0.33

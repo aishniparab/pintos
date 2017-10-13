@@ -20,13 +20,14 @@
 // Number of timer ticks since OS booted.
 static int64_t ticks;
 
+static struct list sleeping_threads;
 // Number of loops per timer tick.  Initialized by timer_calibrate(). 
 static unsigned loops_per_tick;
 
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static intr_handler_func timer_interrupt;
-static void when_to_wake (struct thread *t);
+static void wake_sleeping_thread (struct thread *t);
 static void real_time_delay (int64_t num, int32_t denom);
 static void real_time_sleep (int64_t num, int32_t denom);
 
@@ -39,6 +40,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&sleeping_threads);
 }
 
 /* 
@@ -99,20 +101,18 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  /* my code starts */
+  struct thread *sleeping_t = thread_current();
   ASSERT (intr_get_level () == INTR_ON);
+  sleeping_t->sleep_duration = ticks;
   
-  thread_current()->sleep_duration = ticks;
-  
-  //intr_set_level (INTR_OFF);
-  //list_insert_ordered
-  //intr_set_level (INTR_ON);
+  if (ticks <= 0)
+      return;
   
   intr_set_level (INTR_OFF);
-  thread_block();
+  thread_block(); //put the thread to sleep
   intr_set_level (INTR_ON);
-  
-  //how do i know when is now? use a var int64_t
-  
+  /* my code ends */
 }
 
 /* 
@@ -204,30 +204,40 @@ timer_print_stats (void)
  */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
-{    
+{ 
   ticks++;
   thread_tick ();
   
   ASSERT (intr_get_level () == INTR_OFF);
-  thread_foreach(when_to_wake, 0); //checks all running threads
+  
+  /* my code starts */
+  
+  //thread_foreach applies wake_sleeping_thread on each thread in all_list
+  thread_foreach(wake_sleeping_thread, 0); 
+  
+  /* my code ends */
 }
 
-//want to call unblock outside timer_interrupt
+/* my code starts */
+//want to call thread_unblock outside timer_interrupt
 static void
-when_to_wake (struct thread *t)
+wake_sleeping_thread (struct thread *t)
 {
+    //check if thread is asleep
     if(t->status == THREAD_BLOCKED)
     {
+        //check if thread's sleep_duration is > 0
         if(t->sleep_duration > 0)
         {
-            t->sleep_duration--; //decrement sleep time
-            if(t->sleep_duration == 0) 
+            t->sleep_duration--; //decrement sleep duration
+            if(t->sleep_duration == 0) //once sleep_duration is 0
             {
-                thread_unblock(t); //unblock thread when sleep time ends
+                thread_unblock(t); //its time to wake up the sleeping thread
             }
         }
     }
 }
+/* my code ends */
 
 /* 
  * Returns true if LOOPS iterations waits for more than one timer

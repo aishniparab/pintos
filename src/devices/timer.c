@@ -20,7 +20,6 @@
 // Number of timer ticks since OS booted.
 static int64_t ticks;
 
-static struct list sleeping_threads;
 // Number of loops per timer tick.  Initialized by timer_calibrate(). 
 static unsigned loops_per_tick;
 
@@ -40,7 +39,6 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  list_init(&sleeping_threads);
 }
 
 /* 
@@ -102,9 +100,8 @@ void
 timer_sleep (int64_t ticks) 
 {
   /* my code starts */
-  struct thread *sleeping_t = thread_current();
   ASSERT (intr_get_level () == INTR_ON);
-  sleeping_t->sleep_duration = ticks;
+  thread_current()->sleep_duration = ticks;
   
   if (ticks <= 0)
       return;
